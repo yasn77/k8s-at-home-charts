@@ -1,0 +1,87 @@
+{{- $repo := dict "org" "k8s-at-home" "name" "charts" "helmURL" "https://k8s-at-home.com/charts/" -}}
+{{- $sourceGitRepo := "Missing" -}}
+{{- $sourceDockerRepo := "Missing" -}}
+{{- $imageType := "official" -}}
+{{- if has .Chart "sources" -}}
+  {{- range .Chart.sources -}}
+    {{- if contains "hub.docker.com" . -}}
+      {{- $sourceDockerRepo = . -}}
+      {{- if contains "linuxserver" . -}}
+        {{- $imageType = "linuxserver" -}}
+      {{- end -}}
+    {{- else if contains "github.com" . -}}
+      {{- $sourceGitRepo = . -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+{{- $mediaCommon := false -}}
+{{- $chartType := "Chart" -}}
+{{- if has .Chart "dependencies" -}}
+  {{- range .Chart.dependencies -}}
+    {{- if eq .name "media-common" -}}
+      {{- $mediaCommon = true -}}
+      {{- $chartType = "Umbrella chart" -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+# {{ .Chart.name }}
+{{ template "chart.typeBadge" . }} {{ template "chart.versionBadge" . }} {{ template "chart.appVersionBadge" . }}
+
+{{ .Chart.description }}
+{{- template "chart.deprecationWarning" . }}
+
+{{ $chartType }} that
+{{- if $mediaCommon }}
+  * Uses [media-common](https://github.com/k8s-at-home/charts/tree/master/charts/media-common) as a base
+{{- end }}
+* {{ if eq $chartType "Umbrella chart" }}Adds docker image information leveraging{{ else }}Leverages{{ end }} the [{{ $imageType }} image]({{ $sourceDockerRepo }})
+* Deploys [{{ .Chart.name }}]({{ $sourceGitRepo }})
+
+## TL;DR
+```console
+$ helm repo add {{ $repo.org }} {{ $repo.helmURL }}
+$ helm install {{ $repo.org }}/{{ .Chart.name }}
+```
+
+## Installing the Chart
+```console
+helm install [RELEASE_NAME] {{ $repo.org }}/{{ .Chart.name }}
+```
+
+The command deploys {{ .Chart.name }} on the Kubernetes cluster in the default configuration.
+
+_See [configuration](#configuration) below._
+
+_See [helm install](https://helm.sh/docs/helm/helm_install/) for command documentation._
+
+## Uninstalling the Chart
+```console
+helm uninstall [RELEASE_NAME]
+```
+
+This removes all the Kubernetes components associated with the chart and deletes the release.
+
+_See [helm uninstall](https://helm.sh/docs/helm/helm_uninstall/) for command documentation._
+
+## Upgrading Chart
+
+```console
+$ helm upgrade [RELEASE_NAME] {{ $repo.org }}/{{ .Chart.name }} --install
+```
+
+_See [helm upgrade](https://helm.sh/docs/helm/helm_upgrade/) for command documentation._
+
+## Configuration
+See [Customizing the Chart Before Installing](https://helm.sh/docs/intro/using_helm/#customizing-the-chart-before-installing).
+To see all configurable options with detailed comments, visit the chart's [values.yaml]({{ .Chart.home }}/values.yaml), or run this configuration command:
+```console
+$ helm show values {{ $repo.org }}/{{ .Chart.name }}
+```
+{{- if $mediaCommon }}
+  Read through the media-common [values.yaml](https://github.com/k8s-at-home/charts/blob/master/charts/media-common/values.yaml)
+  file. It has several commented out suggested values. all media-common values are nested under `{{ .Chart.name }}:`
+{{- end }}
+
+### Values
+{{ template "chart.valuesTable" .Values }}
+{{ template "warnings.skipuninstall" .Values }}

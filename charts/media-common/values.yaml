@@ -55,7 +55,7 @@ ingress:
   #  - secretName: chart-example-tls
   #    hosts:
   #      - chart-example.local
-  extraIngresses:
+  extraIngresses: []
   # - enabled: false
   #   nameSuffix: "api"
   #   annotations: {}

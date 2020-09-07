@@ -1,0 +1,110 @@
+{{- define "chart.versionBadge" -}}
+  ![Version: {{ .Chart.version }}](https://img.shields.io/badge/Version-{{ .Chart.version }}-informational?style=flat-square)
+{{- end -}}
+
+{{- define "chart.typeBadge" -}}
+  {{- if has .Chart "type" -}}
+    {{- if .Chart.type -}}
+      ![Type: {{ .Chart.type }}](https://img.shields.io/badge/Type-{{ .Chart.type }}-informational?style=flat-square)
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+
+{{- define "chart.appVersionBadge" -}}
+  {{- if has .Chart "appVersion" -}}
+    {{- if .Chart.appVersion -}}
+      ![AppVersion: {{ .Chart.appVersion }}](https://img.shields.io/badge/AppVersion-{{ .Chart.appVersion }}-informational?style=flat-square)
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+
+{{- define "chart.deprecationWarning" -}}
+  {{- if has .Chart "deprecated" -}}
+    {{- if .Chart.deprecated -}}
+      > **:exclamation: This Helm Chart is deprecated!**
+    {{ end }}
+  {{ end }}
+{{- end -}}
+
+{{- define "typeToFriendly" -}}
+  {{- if isKind "slice" . -}}
+    {{- "| list " -}}
+  {{- else if isKind "map" . -}}
+    {{- "| map " -}}
+  {{- else -}}
+    {{- printf "| %s " (kind .) -}}
+  {{- end -}}
+{{- end -}}
+
+{{- define "valToFriendly" -}}
+  {{- if and (isKind "map" .) (not .) -}}
+    {{- "| `{}` | - |" -}}
+  {{- else if and (isKind "string" .) (not .) -}}
+    {{- "| `\"\"` | - |" -}}
+  {{- else if or (isKind "bool" .) (isKind "int" .) -}}
+    {{- printf "| `%s` | - |" (conv.ToString .) -}}
+  {{- else -}}
+    {{- printf "| `%s` | - |" . -}}
+  {{- end -}}
+{{- end -}}
+
+{{- define "subdictb" -}}
+  {{- range $key, $value := .val -}}
+    {{- if and (isKind "map" $value) $value -}}
+      {{- template "subdicta" (dict "orig" (printf "%s.%s" $.orig $key) "val" $value) -}}
+    {{- else -}}
+      {{- printf "\n| %s.%s " $.orig $key -}}
+      {{- template "typeToFriendly" $value -}}
+      {{- template "valToFriendly" $value -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+
+{{- define "subdicta" -}}
+  {{- $o := . -}}
+  {{- $v := . -}}
+  {{- if has . "orig" -}}
+    {{- $v = $v.val -}}
+  {{- end -}}
+  {{- range $key, $value := $v -}}
+    {{- if and (isKind "map" $value) $value -}}
+      {{- if has $o "orig" -}}
+        {{- template "subdictb" (dict "orig" (printf "%s.%s" $o.orig $key) "val" $value) -}}
+      {{- else -}}
+        {{- template "subdictb" (dict "orig" $key "val" $value) -}}
+      {{- end -}}
+    {{- else -}}
+      {{- if has $o "orig" -}}
+        {{- printf "\n| %s.%s " $o.orig $key -}}
+      {{- else -}}
+        {{- printf "\n| %s " $key -}}
+      {{- end -}}
+      {{- template "typeToFriendly" $value -}}
+      {{- template "valToFriendly" $value -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+{{- define "chart.valuesTable" -}}
+| Key | Type | Default | Description |
+|-----|------|---------|-------------|
+  {{- template "subdicta" . -}}
+{{- end -}}
+
+{{- define "warnings.skipuninstall" -}}
+  {{- if has . "persistence" -}}
+    {{- if has .persistence "config" -}}
+      {{- if has .persistence.config "skipuninstall" -}}
+---
+**NOTE**
+
+If you get
+```console
+Error: rendered manifests contain a resource that already exists. Unable to continue with install: existing resource conflict: ...`
+```
+it may be because you uninstalled the chart with `skipuninstall` enabled, you need to manually delete the pvc or use `existingClaim`.
+
+---
+      {{- end -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
